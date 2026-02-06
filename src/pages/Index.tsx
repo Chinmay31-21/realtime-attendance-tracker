@@ -1,12 +1,14 @@
-import { useState, useCallback } from "react";
-import { Shield, MapPin, Clock, Smartphone, Cpu } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Shield, MapPin, Clock, Smartphone, Cpu, Wifi, AlertCircle } from "lucide-react";
 import { SessionCodeInput } from "@/components/SessionCodeInput";
 import { LocationVerifier } from "@/components/LocationVerifier";
 import { DeviceVerifier } from "@/components/DeviceVerifier";
+import { NetworkTokenInput } from "@/components/NetworkTokenInput";
 import { TimeWindowCheck } from "@/components/TimeWindowCheck";
 import { AttendanceForm } from "@/components/AttendanceForm";
+import { hasSubmitted, recordSubmission } from "@/lib/submissionTracker";
 
-// Demo session code
+// Demo session code and network token
 const VALID_SESSION_CODE = "TPO123";
 
 type StepStatus = "pending" | "verifying" | "verified" | "failed";
@@ -14,11 +16,14 @@ type StepStatus = "pending" | "verifying" | "verified" | "failed";
 const Index = () => {
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [codeStatus, setCodeStatus] = useState<StepStatus>("pending");
+  const [networkStatus, setNetworkStatus] = useState<StepStatus>("pending");
   const [locationStatus, setLocationStatus] = useState<StepStatus>("pending");
   const [deviceStatus, setDeviceStatus] = useState<StepStatus>("pending");
   const [timeValid, setTimeValid] = useState(true);
   const [deviceFingerprint, setDeviceFingerprint] = useState<string | null>(null);
+  const [networkToken, setNetworkToken] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
   const handleCodeComplete = useCallback((code: string) => {
     setCodeStatus("verifying");
@@ -36,24 +41,42 @@ const Index = () => {
     setLocationStatus(verified ? "verified" : "failed");
   }, []);
 
+  const handleNetworkVerification = useCallback((verified: boolean, token?: string) => {
+    setNetworkStatus(verified ? "verified" : "failed");
+    if (token) setNetworkToken(token);
+  }, []);
+
   const handleDeviceVerification = useCallback((verified: boolean, fingerprint?: string) => {
     setDeviceStatus(verified ? "verified" : "failed");
-    if (fingerprint) setDeviceFingerprint(fingerprint);
-  }, []);
+    if (fingerprint) {
+      setDeviceFingerprint(fingerprint);
+      // Check if already submitted
+      if (sessionCode && hasSubmitted(sessionCode, fingerprint)) {
+        setAlreadySubmitted(true);
+      }
+    }
+  }, [sessionCode]);
 
   const allVerified = 
     codeStatus === "verified" && 
+    networkStatus === "verified" &&
     locationStatus === "verified" && 
     deviceStatus === "verified" && 
     timeValid;
 
-  // Show form when all verified
-  if (allVerified && !showForm) {
-    setTimeout(() => setShowForm(true), 500);
-  }
+  // Show form when all verified and not already submitted
+  useEffect(() => {
+    if (allVerified && !showForm && !alreadySubmitted) {
+      const timer = setTimeout(() => setShowForm(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [allVerified, showForm, alreadySubmitted]);
 
   const handleAttendanceSubmit = (data: any) => {
-    console.log("Attendance submitted:", { ...data, sessionCode, deviceFingerprint });
+    if (sessionCode && deviceFingerprint) {
+      recordSubmission(sessionCode, deviceFingerprint, data.studentId || "unknown");
+    }
+    console.log("Attendance submitted:", { ...data, sessionCode, deviceFingerprint, networkToken });
   };
 
   const StatusBadge = ({ status, label }: { status: StepStatus; label: string }) => (
@@ -94,6 +117,7 @@ const Index = () => {
       <div className="bg-card border-b border-border py-3 px-4">
         <div className="max-w-xl mx-auto flex flex-wrap items-center justify-center gap-2">
           <StatusBadge status={codeStatus} label="Code" />
+          <StatusBadge status={networkStatus} label="Network" />
           <StatusBadge status={locationStatus} label="Location" />
           <StatusBadge status={deviceStatus} label="Device" />
           <StatusBadge status={timeValid ? "verified" : "failed"} label="Time" />
@@ -121,7 +145,19 @@ const Index = () => {
           </div>
 
           <div className="p-5 space-y-6">
-            {!showForm ? (
+            {alreadySubmitted ? (
+              <div className="text-center py-8 space-y-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-warning/10">
+                  <AlertCircle className="w-8 h-8 text-warning" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Already Submitted</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    You have already recorded your attendance for this session.
+                  </p>
+                </div>
+              </div>
+            ) : !showForm ? (
               <>
                 {/* Step 1: Session Code */}
                 <div className="space-y-3">
@@ -138,22 +174,36 @@ const Index = () => {
                   )}
                 </div>
 
-                {/* Step 2: Location */}
+                {/* Step 2: Network Token */}
                 {codeStatus === "verified" && (
                   <div className="space-y-3 animate-fade-in">
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</div>
+                      <span className="font-medium text-sm">Verify Network</span>
+                    </div>
+                    <NetworkTokenInput 
+                      onVerificationComplete={handleNetworkVerification}
+                      disabled={networkStatus === "verified"}
+                    />
+                  </div>
+                )}
+
+                {/* Step 3: Location */}
+                {networkStatus === "verified" && (
+                  <div className="space-y-3 animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</div>
                       <span className="font-medium text-sm">Verify Location</span>
                     </div>
                     <LocationVerifier onVerificationComplete={handleLocationVerification} />
                   </div>
                 )}
 
-                {/* Step 3: Device */}
+                {/* Step 4: Device */}
                 {locationStatus === "verified" && (
                   <div className="space-y-3 animate-fade-in">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</div>
+                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</div>
                       <span className="font-medium text-sm">Verify Device</span>
                     </div>
                     <DeviceVerifier onVerificationComplete={handleDeviceVerification} />
@@ -177,14 +227,21 @@ const Index = () => {
 
         {/* Footer */}
         <div className="mt-6 text-center space-y-2">
-          <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <Shield className="w-3 h-3" />
-            Demo Code: <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">TPO123</code>
-          </p>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="flex items-center justify-center gap-2">
+              <Shield className="w-3 h-3" />
+              Demo Code: <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">TPO123</code>
+            </p>
+            <p className="flex items-center justify-center gap-2">
+              <Wifi className="w-3 h-3" />
+              Network Token: <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">WIFI2024</code>
+            </p>
+          </div>
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Wifi className="w-3 h-3" /> Network</span>
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> GPS</span>
-            <span className="flex items-center gap-1"><Smartphone className="w-3 h-3" /> Device ID</span>
-            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Time-locked</span>
+            <span className="flex items-center gap-1"><Smartphone className="w-3 h-3" /> Device</span>
+            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Time</span>
           </div>
         </div>
       </main>
