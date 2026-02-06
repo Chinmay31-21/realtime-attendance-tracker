@@ -4,6 +4,39 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
 
+/* Anti-screenshot protection */
+@media print {
+  body {
+    display: none !important;
+  }
+}
+
+/* Disable text selection on sensitive elements */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Blur animation for secure inputs */
+.blur-on-unfocus:not(:focus-within) {
+  filter: blur(4px);
+  transition: filter 0.15s ease-in-out;
+}
+
+.blur-on-unfocus:focus-within {
+  filter: blur(0);
+  transition: filter 0.15s ease-in-out;
+}
+
+/* Prevent drag on images */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
 @layer base {
   :root {
     --background: 220 15% 96%;

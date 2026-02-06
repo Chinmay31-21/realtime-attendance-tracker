@@ -14,7 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      attendance_records: {
+        Row: {
+          batch: string
+          branch: string
+          device_fingerprint: string
+          division: string
+          id: string
+          recorded_at: string
+          room: Database["public"]["Enums"]["room_type"]
+          session_id: string
+          student_name: string
+          uid: string
+        }
+        Insert: {
+          batch: string
+          branch: string
+          device_fingerprint: string
+          division: string
+          id?: string
+          recorded_at?: string
+          room: Database["public"]["Enums"]["room_type"]
+          session_id: string
+          student_name: string
+          uid: string
+        }
+        Update: {
+          batch?: string
+          branch?: string
+          device_fingerprint?: string
+          division?: string
+          id?: string
+          recorded_at?: string
+          room?: Database["public"]["Enums"]["room_type"]
+          session_id?: string
+          student_name?: string
+          uid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tpo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tpo_sessions: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          network_token: string
+          session_code: string
+          session_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          network_token: string
+          session_code: string
+          session_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          network_token?: string
+          session_code?: string
+          session_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +123,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      room_type: "008" | "002" | "103" | "105"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +250,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      room_type: ["008", "002", "103", "105"],
+    },
   },
 } as const
