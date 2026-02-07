@@ -7,6 +7,8 @@ interface AttendanceRecord {
   division: string;
   batch: string;
   room: string;
+  latitude?: number | null;
+  longitude?: number | null;
   recorded_at: string;
 }
 
@@ -27,6 +29,11 @@ export function exportToExcel(
     'Division': record.division,
     'Batch': record.batch,
     'Room': record.room,
+    'Latitude': record.latitude ?? 'N/A',
+    'Longitude': record.longitude ?? 'N/A',
+    'Google Maps': record.latitude && record.longitude 
+      ? `https://maps.google.com/?q=${record.latitude},${record.longitude}` 
+      : 'N/A',
   }));
 
   // Create workbook and worksheet
@@ -43,6 +50,9 @@ export function exportToExcel(
     { wch: 10 }, // Division
     { wch: 10 }, // Batch
     { wch: 10 }, // Room
+    { wch: 12 }, // Latitude
+    { wch: 12 }, // Longitude
+    { wch: 50 }, // Google Maps
   ];
 
   // Add worksheet to workbook

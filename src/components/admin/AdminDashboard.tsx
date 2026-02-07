@@ -16,30 +16,30 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-gradient-to-r from-primary via-primary to-accent py-4 px-4 border-b border-border">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary-foreground/10 rounded-lg">
-              <Cpu className="w-6 h-6 text-primary-foreground" />
+      <header className="bg-gradient-to-r from-primary via-primary to-accent py-3 sm:py-4 px-3 sm:px-4 border-b border-border">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-1.5 sm:p-2 bg-primary-foreground/10 rounded-lg flex-shrink-0">
+              <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-primary-foreground">TPO Admin Portal</h1>
-              <p className="text-xs text-primary-foreground/70">{user?.email}</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-primary-foreground truncate">TPO Admin Portal</h1>
+              <p className="text-xs text-primary-foreground/70 truncate">{user?.email}</p>
             </div>
           </div>
           <Button
             variant="secondary"
             size="sm"
             onClick={signOut}
-            className="gap-2"
+            className="gap-1 sm:gap-2 flex-shrink-0"
           >
             <LogOut className="w-4 h-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4 space-y-6">
+      <main className="max-w-6xl mx-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* Stats Banner */}
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-3">
@@ -56,7 +56,7 @@ export function AdminDashboard() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-1">
             <SessionGenerator onSessionCreated={handleSessionCreated} />
           </div>

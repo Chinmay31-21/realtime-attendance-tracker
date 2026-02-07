@@ -42,6 +42,8 @@ export type Database = {
           device_fingerprint: string
           division: string
           id: string
+          latitude: number | null
+          longitude: number | null
           recorded_at: string
           room: Database["public"]["Enums"]["room_type"]
           session_id: string
@@ -54,6 +56,8 @@ export type Database = {
           device_fingerprint: string
           division: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           recorded_at?: string
           room: Database["public"]["Enums"]["room_type"]
           session_id: string
@@ -66,6 +70,8 @@ export type Database = {
           device_fingerprint?: string
           division?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           recorded_at?: string
           room?: Database["public"]["Enums"]["room_type"]
           session_id?: string

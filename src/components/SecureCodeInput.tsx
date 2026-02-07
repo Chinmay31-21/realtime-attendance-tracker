@@ -97,7 +97,7 @@ export function SecureCodeInput({
       {label && (
         <p className="text-sm text-muted-foreground text-center">{label}</p>
       )}
-      <div className="flex gap-1.5 justify-center">
+      <div className="flex gap-1 sm:gap-1.5 justify-center flex-wrap">
         {code.map((digit, index) => (
           <Input
             key={index}
@@ -112,7 +112,7 @@ export function SecureCodeInput({
             onFocus={() => setIsFocused(true)}
             disabled={disabled}
             className={`
-              w-10 h-12 text-center text-lg font-mono font-bold uppercase
+              w-8 h-10 sm:w-10 sm:h-12 text-center text-base sm:text-lg font-mono font-bold uppercase
               border-2 transition-all duration-200
               ${disabled ? 'opacity-50 blur-md' : ''}
               ${!isFocused && !disabled ? 'blur-sm' : ''}

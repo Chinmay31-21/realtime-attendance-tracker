@@ -169,7 +169,122 @@ export function SessionList({ refreshTrigger }: SessionListProps) {
             No sessions created yet. Create your first session above.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile Card View */}
+            <div className="space-y-4 md:hidden">
+              {sessions.map((session) => (
+                <div key={session.id} className="border border-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{session.session_name}</h3>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(session.expires_at).toLocaleString('en-IN', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })}
+                      </div>
+                    </div>
+                    {isExpired(session.expires_at) ? (
+                      <Badge variant="secondary">Expired</Badge>
+                    ) : session.is_active ? (
+                      <Badge className="bg-success text-success-foreground">Active</Badge>
+                    ) : (
+                      <Badge variant="outline">Inactive</Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">Session Code:</span>
+                      <div className="flex items-center gap-1">
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                          {showCodes[session.id] ? session.session_code : '••••••••'}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => copyCode(session.session_code, 'Session code')}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">Network Token:</span>
+                      <div className="flex items-center gap-1">
+                        <code className="text-xs bg-accent/20 px-2 py-1 rounded font-mono">
+                          {showCodes[session.id] ? session.network_token : '••••••••'}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => copyCode(session.network_token, 'Network token')}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-8 text-xs"
+                      onClick={() => setShowCodes(prev => ({ ...prev, [session.id]: !prev[session.id] }))}
+                    >
+                      {showCodes[session.id] ? (
+                        <><EyeOff className="w-3 h-3 mr-1" /> Hide Codes</>
+                      ) : (
+                        <><Eye className="w-3 h-3 mr-1" /> Show Codes</>
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div className="flex items-center gap-1 text-sm">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <span>{attendanceCounts[session.id] || 0} students</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleExport(session)}
+                        disabled={exporting === session.id}
+                      >
+                        {exporting === session.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleSessionActive(session)}
+                      >
+                        {session.is_active ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteSession(session.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -291,7 +406,8 @@ export function SessionList({ refreshTrigger }: SessionListProps) {
                 ))}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

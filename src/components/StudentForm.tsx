@@ -30,6 +30,7 @@ type FormData = z.infer<typeof formSchema>;
 interface StudentFormProps {
   sessionId: string;
   deviceFingerprint: string;
+  userLocation: { latitude: number; longitude: number } | null;
   onSubmit: (data: FormData) => void;
 }
 
@@ -49,7 +50,7 @@ const divisions = ["A", "B", "C", "D"];
 const batches = ["B1", "B2", "B3", "B4"];
 const rooms = ["008", "002", "103", "105"] as const;
 
-export function StudentForm({ sessionId, deviceFingerprint, onSubmit }: StudentFormProps) {
+export function StudentForm({ sessionId, deviceFingerprint, userLocation, onSubmit }: StudentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -75,6 +76,8 @@ export function StudentForm({ sessionId, deviceFingerprint, onSubmit }: StudentF
         batch: data.batch,
         room: data.room as typeof rooms[number],
         device_fingerprint: deviceFingerprint,
+        latitude: userLocation?.latitude ?? null,
+        longitude: userLocation?.longitude ?? null,
       });
 
       if (error) {
@@ -174,7 +177,7 @@ export function StudentForm({ sessionId, deviceFingerprint, onSubmit }: StudentF
       </div>
 
       {/* Division & Batch Row */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="flex items-center gap-2 text-foreground">
             <Users className="w-4 h-4" />
