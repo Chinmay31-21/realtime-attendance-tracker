@@ -35,17 +35,21 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-function getLocationStatus(latitude?: number | null, longitude?: number | null): { status: string; distance: number | null } {
+function getLocationStatus(latitude?: number | null, longitude?: number | null): { 
+  isInSPIT: boolean; 
+  locationLabel: string; 
+  distance: number | null;
+} {
   if (latitude == null || longitude == null) {
-    return { status: 'Location Not Available', distance: null };
+    return { isInSPIT: false, locationLabel: 'Location Not Available', distance: null };
   }
   
   const distance = calculateDistance(latitude, longitude, SPIT_LOCATION.lat, SPIT_LOCATION.lng);
   
   if (distance <= SPIT_LOCATION.radiusMeters) {
-    return { status: 'SPIT Campus', distance: Math.round(distance) };
+    return { isInSPIT: true, locationLabel: 'In SPIT', distance: Math.round(distance) };
   } else {
-    return { status: 'Outside SPIT', distance: Math.round(distance) };
+    return { isInSPIT: false, locationLabel: 'Other Location', distance: Math.round(distance) };
   }
 }
 
@@ -69,8 +73,8 @@ export function exportToExcel(
       'Division': record.division,
       'Batch': record.batch,
       'Room': record.room,
-      'Attendance': 'Present',
-      'Location Status': locationInfo.status,
+      'Present': locationInfo.isInSPIT ? 'Present' : 'Absent',
+      'Location': locationInfo.locationLabel,
       'Distance from SPIT (m)': locationInfo.distance ?? 'N/A',
       'Latitude': record.latitude ?? 'N/A',
       'Longitude': record.longitude ?? 'N/A',
@@ -94,8 +98,8 @@ export function exportToExcel(
     { wch: 10 }, // Division
     { wch: 10 }, // Batch
     { wch: 10 }, // Room
-    { wch: 10 }, // Attendance
-    { wch: 20 }, // Location Status
+    { wch: 10 }, // Present
+    { wch: 20 }, // Location
     { wch: 20 }, // Distance from SPIT
     { wch: 12 }, // Latitude
     { wch: 12 }, // Longitude
