@@ -114,7 +114,7 @@ export function SecureCodeInput({
             className={`
               w-10 h-12 text-center text-lg font-mono font-bold uppercase
               border-2 transition-all duration-200
-              ${disabled ? 'opacity-50' : ''}
+              ${disabled ? 'opacity-50 blur-md' : ''}
               ${!isFocused && !disabled ? 'blur-sm' : ''}
               input-secure
             `}

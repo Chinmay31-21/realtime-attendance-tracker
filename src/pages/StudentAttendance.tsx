@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Shield, MapPin, Clock, Smartphone, Cpu, Wifi, AlertCircle, CheckCircle2 } from "lucide-react";
 import { SecureCodeInput } from "@/components/SecureCodeInput";
 import { LocationVerifier } from "@/components/LocationVerifier";
@@ -301,6 +302,9 @@ const StudentAttendance = () => {
           <p className="text-xs text-muted-foreground">
             Codes auto-blur for screenshot protection
           </p>
+          <Link to="/admin" className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline">
+            Admin Login
+          </Link>
         </div>
       </main>
     </div>
