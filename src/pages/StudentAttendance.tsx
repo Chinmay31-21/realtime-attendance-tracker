@@ -262,6 +262,11 @@ const StudentAttendance = () => {
                     </div>
                     <LocationVerifier 
                       onVerificationComplete={handleLocationVerification}
+                      targetLocation={{
+                        lat: 19.1248,  // Sardar Patel Institute of Technology, Bhavan's Campus, Andheri West
+                        lng: 72.8356,
+                        radiusMeters: 200
+                      }}
                     />
                   </div>
                 )}

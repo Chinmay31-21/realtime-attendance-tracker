@@ -66,7 +66,7 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
             onVerificationComplete(true, position.coords);
           } else {
             setStatus("failed");
-            setError(`You are ${Math.round(distance)}m away from the session location. Maximum allowed: ${targetLocation.radiusMeters}m`);
+            setError(`You are ${Math.round(distance)}m away from SPIT Campus. You must be within ${targetLocation.radiusMeters}m to mark attendance.`);
             onVerificationComplete(false);
           }
         }, 1000);
@@ -114,10 +114,12 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
           <div>
             <p className="font-medium text-foreground">Location Verification</p>
             <p className="text-sm text-muted-foreground">
-              {status === "idle" && "Click to verify your location"}
+              {status === "idle" && (targetLocation 
+                ? `Must be within ${targetLocation.radiusMeters}m of SPIT Campus` 
+                : "Click to verify your location")}
               {status === "requesting" && "Requesting location access..."}
-              {status === "verifying" && "Verifying location..."}
-              {status === "verified" && "Location verified successfully"}
+              {status === "verifying" && "Checking proximity to SPIT Campus..."}
+              {status === "verified" && "You are within SPIT Campus"}
               {status === "failed" && "Location verification failed"}
             </p>
           </div>
