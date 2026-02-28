@@ -47,11 +47,17 @@ const branches = [
 ];
 
 const divisions = ["A", "B", "C", "D"];
-const batches = ["B1", "B2", "B3", "B4"];
+const batchesMap: Record<string, string[]> = {
+  A: ["A1", "A2", "A3", "A4"],
+  B: ["B1", "B2", "B3", "B4"],
+  C: ["C1", "C2", "C3", "C4"],
+  D: ["D1", "D2", "D3", "D4"],
+};
 const rooms = ["008", "002", "103", "105"] as const;
 
 export function StudentForm({ sessionId, deviceFingerprint, userLocation, onSubmit }: StudentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDivision, setSelectedDivision] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const {
@@ -183,7 +189,11 @@ export function StudentForm({ sessionId, deviceFingerprint, userLocation, onSubm
             <Users className="w-4 h-4" />
             Division
           </Label>
-          <Select onValueChange={(value) => setValue("division", value)}>
+          <Select onValueChange={(value) => {
+              setValue("division", value);
+              setSelectedDivision(value);
+              setValue("batch", "");
+            }}>
             <SelectTrigger className="input-secure">
               <SelectValue placeholder="Division" />
             </SelectTrigger>
@@ -205,12 +215,15 @@ export function StudentForm({ sessionId, deviceFingerprint, userLocation, onSubm
             <Calendar className="w-4 h-4" />
             Batch
           </Label>
-          <Select onValueChange={(value) => setValue("batch", value)}>
+          <Select 
+            onValueChange={(value) => setValue("batch", value)}
+            disabled={!selectedDivision}
+          >
             <SelectTrigger className="input-secure">
-              <SelectValue placeholder="Batch" />
+              <SelectValue placeholder={selectedDivision ? "Batch" : "Select division first"} />
             </SelectTrigger>
             <SelectContent>
-              {batches.map((batch) => (
+              {(batchesMap[selectedDivision] || []).map((batch) => (
                 <SelectItem key={batch} value={batch}>
                   {batch}
                 </SelectItem>
