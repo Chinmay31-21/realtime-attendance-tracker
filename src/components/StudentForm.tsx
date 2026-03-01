@@ -35,15 +35,9 @@ interface StudentFormProps {
 }
 
 const branches = [
-  "Computer Science & Engineering",
   "Computer Engineering",
-  "Information Technology",
-  "Electronics & Telecommunication",
-  "Electrical Engineering",
-  "Mechanical Engineering",
-  "Civil Engineering",
-  "Chemical Engineering",
-  "Instrumentation Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Telecommunication Engineering",
 ];
 
 const divisions = ["A", "B", "C", "D"];
