@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { MapPin, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { MapPin, Loader2, AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { validateGPSReading, collectLocationSamples, analyzeLocationSamples, checkLocationSpoofing } from "@/lib/devToolsDetector";
 
 interface LocationVerifierProps {
   onVerificationComplete: (verified: boolean, coords?: GeolocationCoordinates) => void;
@@ -8,8 +9,9 @@ interface LocationVerifierProps {
 }
 
 export function LocationVerifier({ onVerificationComplete, targetLocation }: LocationVerifierProps) {
-  const [status, setStatus] = useState<"idle" | "requesting" | "verifying" | "verified" | "failed">("idle");
+  const [status, setStatus] = useState<"idle" | "requesting" | "verifying" | "verified" | "failed" | "spoofed">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [spoofWarnings, setSpoofWarnings] = useState<string[]>([]);
   const [coords, setCoords] = useState<GeolocationCoordinates | null>(null);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -27,7 +29,7 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
     return R * c;
   };
 
-  const verifyLocation = useCallback(() => {
+  const verifyLocation = useCallback(async () => {
     if (!navigator.geolocation) {
       setStatus("failed");
       setError("Geolocation is not supported by your browser");
@@ -37,63 +39,86 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
 
     setStatus("requesting");
     setError(null);
+    setSpoofWarnings([]);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords(position.coords);
-        setStatus("verifying");
+    // Step 1: Check for API-level tampering
+    const spoofCheck = checkLocationSpoofing();
+    if (spoofCheck.isSuspicious) {
+      setStatus("spoofed");
+      setSpoofWarnings(spoofCheck.reasons);
+      setError("Location spoofing detected. Disable mock location apps and developer mode.");
+      onVerificationComplete(false);
+      return;
+    }
 
-        // If no target location is set, we just verify that we can get location
-        if (!targetLocation) {
-          setTimeout(() => {
-            setStatus("verified");
-            onVerificationComplete(true, position.coords);
-          }, 1000);
-          return;
-        }
-
-        // Calculate distance from target
-        const distance = calculateDistance(
-          position.coords.latitude,
-          position.coords.longitude,
-          targetLocation.lat,
-          targetLocation.lng
-        );
-
-        setTimeout(() => {
-          if (distance <= targetLocation.radiusMeters) {
-            setStatus("verified");
-            onVerificationComplete(true, position.coords);
-          } else {
-            setStatus("failed");
-            setError(`You are ${Math.round(distance)}m away from SPIT Campus. You must be within ${targetLocation.radiusMeters}m to mark attendance.`);
-            onVerificationComplete(false);
-          }
-        }, 1000);
-      },
-      (err) => {
-        setStatus("failed");
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setError("Location access denied. You must enable location to mark attendance.");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setError("Location information unavailable. Please try again.");
-            break;
-          case err.TIMEOUT:
-            setError("Location request timed out. Please try again.");
-            break;
-          default:
-            setError("Unable to verify your location.");
-        }
+    try {
+      // Step 2: Collect multiple GPS samples to detect spoofing
+      setStatus("verifying");
+      const samples = await collectLocationSamples(3, 800);
+      
+      // Step 3: Analyze samples for spoofing patterns
+      const analysis = analyzeLocationSamples(samples);
+      if (analysis.isSuspicious) {
+        setStatus("spoofed");
+        setSpoofWarnings([analysis.reason]);
+        setError("GPS spoofing detected. Your location readings are artificially static. Disable any mock location apps.");
         onVerificationComplete(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        return;
       }
-    );
+
+      const position = samples[samples.length - 1];
+      
+      // Step 4: Validate GPS reading quality
+      const gpsValidation = validateGPSReading(position.coords);
+      if (!gpsValidation.isValid) {
+        setSpoofWarnings(gpsValidation.warnings);
+      }
+
+      setCoords(position.coords);
+
+      // If no target location, just verify we can get location
+      if (!targetLocation) {
+        setStatus("verified");
+        onVerificationComplete(true, position.coords);
+        return;
+      }
+
+      // Step 5: Calculate distance from target
+      const distance = calculateDistance(
+        position.coords.latitude,
+        position.coords.longitude,
+        targetLocation.lat,
+        targetLocation.lng
+      );
+
+      if (distance <= targetLocation.radiusMeters) {
+        if (gpsValidation.warnings.length > 0) {
+          // Allow but flag warnings
+          setSpoofWarnings(gpsValidation.warnings);
+        }
+        setStatus("verified");
+        onVerificationComplete(true, position.coords);
+      } else {
+        setStatus("failed");
+        setError(`You are ${Math.round(distance)}m away from SPIT Campus. You must be within ${targetLocation.radiusMeters}m to mark attendance.`);
+        onVerificationComplete(false);
+      }
+    } catch (err: any) {
+      if (err.code === 1) {
+        setStatus("failed");
+        setError("Location access denied. You must enable location to mark attendance.");
+      } else if (err.code === 2) {
+        setStatus("failed");
+        setError("Location information unavailable. Please try again.");
+      } else if (err.code === 3) {
+        setStatus("failed");
+        setError("Location request timed out. Please try again.");
+      } else {
+        setStatus("failed");
+        setError("Unable to verify your location.");
+      }
+      onVerificationComplete(false);
+    }
   }, [onVerificationComplete, targetLocation]);
 
   return (
@@ -102,14 +127,18 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-full ${
             status === "verified" ? "bg-success/10" : 
-            status === "failed" ? "bg-destructive/10" : 
+            status === "failed" || status === "spoofed" ? "bg-destructive/10" : 
             "bg-primary/10"
           }`}>
-            <MapPin className={`w-5 h-5 ${
-              status === "verified" ? "text-success" : 
-              status === "failed" ? "text-destructive" : 
-              "text-primary"
-            }`} />
+            {status === "spoofed" ? (
+              <ShieldAlert className="w-5 h-5 text-destructive" />
+            ) : (
+              <MapPin className={`w-5 h-5 ${
+                status === "verified" ? "text-success" : 
+                status === "failed" ? "text-destructive" : 
+                "text-primary"
+              }`} />
+            )}
           </div>
           <div>
             <p className="font-medium text-foreground">Location Verification</p>
@@ -118,9 +147,10 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
                 ? `Must be within ${targetLocation.radiusMeters}m of SPIT Campus` 
                 : "Click to verify your location")}
               {status === "requesting" && "Requesting location access..."}
-              {status === "verifying" && "Checking proximity to SPIT Campus..."}
+              {status === "verifying" && "Collecting GPS samples & anti-spoof check..."}
               {status === "verified" && "You are within SPIT Campus"}
               {status === "failed" && "Location verification failed"}
+              {status === "spoofed" && "⚠️ GPS Spoofing Detected"}
             </p>
           </div>
         </div>
@@ -139,7 +169,7 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
           <CheckCircle2 className="w-6 h-6 text-success" />
         )}
 
-        {status === "failed" && (
+        {(status === "failed" || status === "spoofed") && (
           <Button onClick={verifyLocation} variant="outline" size="sm">
             Retry
           </Button>
@@ -150,6 +180,18 @@ export function LocationVerifier({ onVerificationComplete, targetLocation }: Loc
         <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm animate-shake">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {spoofWarnings.length > 0 && status === "verified" && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-warning text-sm">
+          <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">GPS quality warnings:</p>
+            <ul className="list-disc list-inside text-xs mt-1">
+              {spoofWarnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          </div>
         </div>
       )}
 
