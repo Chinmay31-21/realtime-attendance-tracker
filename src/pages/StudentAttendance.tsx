@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Shield, MapPin, Clock, Smartphone, Cpu, Wifi, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Shield, MapPin, Clock, Smartphone, Cpu, Wifi, AlertCircle, CheckCircle2, ShieldAlert, MonitorX } from "lucide-react";
 import { SecureCodeInput } from "@/components/SecureCodeInput";
 import { LocationVerifier } from "@/components/LocationVerifier";
 import { DeviceVerifier } from "@/components/DeviceVerifier";
@@ -8,6 +8,7 @@ import { TimeWindowCheck } from "@/components/TimeWindowCheck";
 import { StudentForm } from "@/components/StudentForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { startDevToolsDetection } from "@/lib/devToolsDetector";
 
 type StepStatus = "pending" | "verifying" | "verified" | "failed";
 
@@ -19,6 +20,7 @@ interface SessionData {
 }
 
 const StudentAttendance = () => {
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [codeStatus, setCodeStatus] = useState<StepStatus>("pending");
   const [networkStatus, setNetworkStatus] = useState<StepStatus>("pending");
@@ -29,6 +31,17 @@ const StudentAttendance = () => {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+
+  // Developer tools detection
+  useEffect(() => {
+    const cleanup = startDevToolsDetection((isOpen) => {
+      setDevToolsOpen(isOpen);
+      if (isOpen) {
+        toast.error("Developer tools detected! Close them to continue.", { duration: 5000 });
+      }
+    });
+    return cleanup;
+  }, []);
 
   // Verify session code against database
   const handleSessionCodeComplete = useCallback(async (code: string) => {
@@ -146,6 +159,40 @@ const StudentAttendance = () => {
 
   return (
     <div className="min-h-screen bg-background no-select">
+      {/* DevTools Blocker Overlay */}
+      {devToolsOpen && (
+        <div className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-6">
+          <div className="max-w-md text-center space-y-6">
+            <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
+              <MonitorX className="w-10 h-10 text-destructive" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Developer Tools Detected</h2>
+              <p className="text-muted-foreground">
+                Please close Developer Tools / Developer Mode to continue using this application.
+                This is required to prevent location spoofing and ensure attendance integrity.
+              </p>
+            </div>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-left">
+                <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 text-destructive" />
+                <div>
+                  <p className="font-medium text-foreground">How to fix:</p>
+                  <ul className="mt-1 space-y-1 list-disc list-inside text-muted-foreground">
+                    <li>Press <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs font-mono">F12</kbd> to close DevTools</li>
+                    <li>Disable "Developer Mode" in your phone settings</li>
+                    <li>Turn off "Mock Location" apps</li>
+                    <li>Close any GPS spoofing apps</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This page will automatically resume once Developer Tools are closed.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-gradient-to-r from-primary via-primary to-accent py-4 sm:py-6 px-3 sm:px-4">
         <div className="max-w-xl mx-auto text-center">
